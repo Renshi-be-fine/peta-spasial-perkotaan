@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Final Project – Peta Spasial Perkotaan | Grafika Komputer 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+  <!-- HEADER -->
+  <div id="hdr">
+    <div class="hlogo">
+      <h1>Peta Spasial Perkotaan</h1>
+      <p>INF11114 Grafika Komputer · UMRAH 2026</p>
+    </div>
+    <div class="htools">
+      <button id="btnRand">Acak Map</button>
+      <button id="btnRandPos">Acak Posisi</button>
+      <button id="btnZI">Zoom +</button>
+      <button id="btnZO">Zoom -</button>
+      <button id="btnZR">Fit</button>
+      <button id="btnTrack">Start Track</button>
+      <button id="btnAbout">Info</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- SIDEBAR -->
+    <div id="sb">
+      <div class="ss">
+        <h4>Algoritma</h4>
+        <label><input type="radio" name="algo" value="both" checked> BFS + Dijkstra</label>
+        <label><input type="radio" name="algo" value="bfs"> BFS</label>
+        <label><input type="radio" name="algo" value="dijkstra"> Dijkstra</label>
+      </div>
+      <div class="ss">
+        <h4>Rute</h4>
+        <label>Titik Awal</label>
+        <select id="selS"></select>
+        <label>Titik Tujuan</label>
+        <select id="selE"></select>
+        <button id="btnRun">Jalankan</button>
+        <button id="btnReset">Reset</button>
+      </div>
+      <div class="ss">
+        <h4>Statistik</h4>
+        <span>Nodes: <b id="stN">–</b></span>
+        <span>Edges: <b id="stE">–</b></span>
+        <span>Zoom: <b id="stZ">100%</b></span>
+      </div>
+      <div class="ss">
+        <h4>Hasil Algoritma</h4>
+        <div id="rBP">–</div>
+        <div id="rDP">–</div>
+        <div id="rSummary"></div>
+      </div>
+    </div>
+
+    <!-- VIEWPORT PETA -->
+    <div id="vp">
+      <div id="cvwrap">
+        <canvas id="mc"></canvas>
+      </div>
+      <div id="zhud">Zoom: 100%</div>
+      <div id="scbar">
+        <div class="bar" id="scline"></div>
+        <span id="sclbl">500m</span>
+      </div>
+      <div id="mmwrap">
+        <canvas id="mmc" width="160" height="110"></canvas>
+        <div id="mmv"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL INFO -->
+  <div id="mdbg">
+    <div id="mdbox">
+      <h2>Final Project – Peta Spasial Perkotaan</h2>
+      <p>INF11114 Grafika Komputer · UMRAH 2026</p>
+      <button id="btnMdClose">Tutup</button>
+    </div>
+  </div>
+
+  <!-- NOTIFIKASI -->
+  <div id="nbox"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
