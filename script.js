@@ -1,12 +1,3 @@
-// ============================================================
-// script.js — Peta Spasial Perkotaan
-// INF11114 Grafika Komputer · UMRAH 2026
-// ============================================================
-
-// Konstanta dan state akan ditambahkan oleh Aldi Saputra
-// Algoritma BFS & Dijkstra akan ditambahkan oleh Ardiansyah Riski
-// Fungsi grafika komputer akan ditambahkan oleh Cinto Aprilman
-// Animasi dan tracking akan ditambahkan oleh Ikhbal Maulana
 // Polyfill untuk roundRect (jika belum ada)
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
@@ -75,10 +66,331 @@ const ctx = mc.getContext('2d');
 mc.width = MAP_W; mc.height = MAP_H;
 
 // ============================================================
-// UI — populateSel, notify, clearRes
+// HELPER — mkRnd (dibutuhkan generateMap)
+// ============================================================
+function mkRnd(seed){
+  let r=(seed^0xdeadbeef)>>>0;
+  return ()=>{
+    r=Math.imul(r^(r>>>16),0x45d9f3b);
+    r=Math.imul(r^(r>>>16),0x45d9f3b);
+    r^=r>>>16; return (r>>>0)/0xffffffff;
+  };
+}
+
+// ============================================================
+// BFS
+// ============================================================
+function bfs(start,end,adj){
+  const Q=[[start]],vis=new Set([start]);
+  while(Q.length){
+    const p=Q.shift(),n=p[p.length-1];
+    if(n===end)return p;
+    for(const nb of(adj[n]||[])){
+      if(!vis.has(nb.to)){vis.add(nb.to);Q.push([...p,nb.to]);}
+    }
+  }
+  return [];
+}
+
+// ============================================================
+// DIJKSTRA
+// ============================================================
+function dijkstra(start,end,adj,nodes){
+  const dist={},prev={};
+  nodes.forEach(n=>dist[n.id]=Infinity);
+  dist[start]=0;
+  const pq=[{id:start,d:0}];
+  while(pq.length){
+    pq.sort((a,b)=>a.d-b.d);
+    const {id,d}=pq.shift();
+    if(id===end)break;
+    if(d>dist[id])continue;
+    for(const nb of(adj[id]||[])){
+      const nd=d+nb.weight;
+      if(nd<dist[nb.to]){dist[nb.to]=nd;prev[nb.to]=id;pq.push({id:nb.to,d:nd});}
+    }
+  }
+  if(dist[end]===Infinity)return [];
+  const p=[];let c=end;
+  while(c!==undefined){p.unshift(c);c=prev[c];}
+  return p;
+}
+
+function pathDist(path,adj){
+  let t=0;
+  for(let i=0;i<path.length-1;i++){
+    const nb=adj[path[i]]?.find(n=>n.to===path[i+1]);
+    if(nb)t+=nb.weight;
+  }
+  return t;
+}
+
+function pathKm(path,adj){
+  let t=0;
+  for(let i=0;i<path.length-1;i++){
+    const nb=adj[path[i]]?.find(n=>n.to===path[i+1]);
+    if(nb)t+=(nb.dist||nb.weight);
+  }
+  return (t/400).toFixed(2);
+}
+
+// ============================================================
+// GENERATE MAP — Graph Construction
+// ============================================================
+function generateMap(seed){
+  const rnd=mkRnd(seed||Math.floor(Math.random()*1e9));
+
+  const labels=['Pelabuhan','Pasar Besar','Kampus UMRAH','Grand Mall','Terminal Bus','Perumahan',
+    'Bandara','Stasiun KA','RSUD','Taman Kota','Polres','Masjid Raya',
+    'Hotel Grand','SMA Negeri 1','Bank BRI','Balai Kota','Lapangan','Pantai Indah',
+    'Kawasan Industri','Pusat Kuliner','SPBU 24H','Gedung Seni','Museum Kota','Taman Budaya'];
+  const icons=['⚓','🛒','🎓','🏬','🚌','🏘','✈','🚉','🏥','🌳','🚓','🕌',
+    '🏨','🏫','🏦','🏛','⛳','🏖','🏭','🍜','⛽','🎭','🏛','🎪'];
+  const rtypes=[0,1,1,1,1,2, 0,1,1,2,2,2, 1,2,1,1,2,2, 0,2,2,2,1,2];
+
+  const cols=6,rows=4;
+  const padX=180,padY=160;
+  const cW=(MAP_W-padX*2)/cols,cH=(MAP_H-padY*2)/rows;
+  const nodes=[];
+  for(let i=0;i<24;i++){
+    const c=i%cols,r=Math.floor(i/cols);
+    const pos=()=>{
+      const v=rnd();
+      if(v<0.18) return 0.02+rnd()*0.10;
+      if(v<0.35) return 0.88+rnd()*0.10;
+      return 0.18+rnd()*0.64;
+    };
+    nodes.push({
+      id:i,
+      x:Math.round(padX+cW*c+cW*pos()),
+      y:Math.round(padY+cH*r+cH*pos()),
+      label:labels[i],icon:icons[i],rtype:rtypes[i]
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // GRAPH CONSTRUCTION: MST + extra density + guaranteed no dead-ends
+  // ------------------------------------------------------------------
+  const edges=[];
+  function hasEdge(a,b){
+    return edges.some(e=>(e.from===a&&e.to===b)||(e.from===b&&e.to===a));
+  }
+  function addEdge(a,b){
+    if(a===b||hasEdge(a,b))return;
+    const dx=nodes[a].x-nodes[b].x,dy=nodes[a].y-nodes[b].y;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    edges.push({from:a,to:b,weight:Math.round(d),dist:Math.round(d)});
+  }
+
+  // 1) MST Prim – menjamin semua node terhubung
+  const inMST=new Set([0]);
+  while(inMST.size<nodes.length){
+    let minD=Infinity,best=null;
+    for(const u of inMST){
+      for(let v=0;v<nodes.length;v++){
+        if(inMST.has(v))continue;
+        const dx=nodes[u].x-nodes[v].x,dy=nodes[u].y-nodes[v].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<minD){minD=d;best={from:u,to:v};}
+      }
+    }
+    inMST.add(best.to);
+    addEdge(best.from,best.to);
+  }
+
+  // 2) Extra density edges
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      if(hasEdge(i,j))continue;
+      const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<500&&rnd()<0.42)addEdge(i,j);
+    }
+  }
+
+  // 3) Loop guarantee: setiap node punya degree >= 2
+  let changed=true;
+  while(changed){
+    changed=false;
+    const deg=new Array(nodes.length).fill(0);
+    edges.forEach(e=>{deg[e.from]++;deg[e.to]++;});
+    for(let i=0;i<nodes.length;i++){
+      if(deg[i]>=2)continue;
+      let nearest=-1,nearD=Infinity;
+      for(let j=0;j<nodes.length;j++){
+        if(j===i||hasEdge(i,j))continue;
+        const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<nearD){nearD=d;nearest=j;}
+      }
+      if(nearest>=0){addEdge(i,nearest);changed=true;}
+    }
+  }
+
+  // 4) Bypass edges: koneksi jarak jauh
+  const candidates=[];
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      if(hasEdge(i,j))continue;
+      const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d>600)candidates.push({i,j,d});
+    }
+  }
+  candidates.sort((a,b)=>b.d-a.d);
+  const bypassEdges=[];
+  const usedNodes=new Set();
+  for(const c of candidates){
+    if(bypassEdges.length>=5)break;
+    if(usedNodes.has(c.i)||usedNodes.has(c.j))continue;
+    bypassEdges.push(c);
+    usedNodes.add(c.i); usedNodes.add(c.j);
+    addEdge(c.i,c.j);
+    edges[edges.length-1].bypass=true;
+  }
+
+  const lakeSeeds=[
+    {cx:MAP_W*0.22, cy:MAP_H*0.52, rx:105,ry:72, label:'Danau Sari'},
+    {cx:MAP_W*0.73, cy:MAP_H*0.28, rx:82, ry:58, label:'Kolam Taman'},
+    {cx:MAP_W*0.53, cy:MAP_H*0.74, rx:125,ry:88, label:'Danau Kota'},
+  ];
+  const lakes=lakeSeeds.filter(l=>{
+    return nodes.every(n=>Math.hypot(n.x-l.cx,n.y-l.cy)>180);
+  });
+
+  // Cache curves — akan diisi oleh Cinto (fungsi getCP/getCPBypass/arcTable)
+  const cc={};
+  edges.forEach(e=>{
+    const a=nodes[e.from],b=nodes[e.to];
+    const {cp1,cp2}=e.bypass?getCPBypass(a,b):getCP(a,b);
+    const T=arcTable(a,cp1,cp2,b);
+    cc[`${e.from}-${e.to}`]={cp1,cp2,T,len:T[T.length-1].s,a,b,bypass:e.bypass};
+    const Tr=arcTable(b,cp2,cp1,a);
+    cc[`${e.to}-${e.from}`]={cp1:cp2,cp2:cp1,T:Tr,len:Tr[Tr.length-1].s,a:b,b:a,bypass:e.bypass};
+  });
+
+  const adj={};
+  nodes.forEach(n=>adj[n.id]=[]);
+  edges.forEach(e=>{
+    adj[e.from].push({to:e.to,   weight:e.weight,dist:e.dist||e.weight,bypass:!!e.bypass});
+    adj[e.to].push(  {to:e.from, weight:e.weight,dist:e.dist||e.weight,bypass:!!e.bypass});
+  });
+
+  // Buildings & Trees — akan diisi Cinto
+  const nodeBuildings=[],nodeTrees=[];
+  nodes.forEach(node=>{
+    const edgeAngles=[];
+    for(const nb of(adj[node.id]||[])){
+      const o=nodes[nb.to];
+      edgeAngles.push(Math.atan2(o.y-node.y,o.x-node.x)*180/Math.PI);
+    }
+    let bestAngle=0,maxMinDiff=-Infinity;
+    for(let a=0;a<360;a+=30){
+      let minDiff=180;
+      for(const ea of edgeAngles){
+        let diff=Math.abs(a-ea);
+        diff=Math.min(diff,360-diff);
+        if(diff<minDiff)minDiff=diff;
+      }
+      if(minDiff>maxMinDiff){maxMinDiff=minDiff;bestAngle=a;}
+    }
+    const rad=bestAngle*Math.PI/180;
+    const dist=105;
+    const bx=node.x+Math.cos(rad)*dist;
+    const by=node.y+Math.sin(rad)*dist;
+    let type='default',w=56,h=48;
+    if(node.label.includes('SMA')){type='school';w=72;h=54;}
+    else if(node.label.includes('Bandara')){type='airport';w=88;h=60;}
+    else if(node.label.includes('Mall')||node.label.includes('Pasar')){type='mall';w=74;h=62;}
+    else if(node.label.includes('RSUD')){type='hospital';w=68;h=58;}
+    else if(node.label.includes('Masjid')){type='mosque';w=64;h=62;}
+    else if(node.label.includes('Hotel')){type='hotel';w=60;h=56;}
+    else if(node.label.includes('Bank')||node.label.includes('Balai')){type='office';w=64;h=52;}
+    else if(node.label.includes('SPBU')){type='gasstation';w=58;h=46;}
+    else if(node.label.includes('Kampus')){type='university';w=80;h=58;}
+    else if(node.label.includes('Terminal')||node.label.includes('Stasiun')){type='station';w=72;h=52;}
+    else if(node.label.includes('Museum')){type='museum';w=70;h=56;}
+    nodeBuildings.push({nodeId:node.id,x:bx-w/2,y:by-h/2,width:w,height:h,type,label:node.label});
+    const trad=bestAngle*Math.PI/180;
+    const treeDist=140;
+    nodeTrees.push({nodeId:node.id,
+      x:node.x+Math.cos(trad)*treeDist,
+      y:node.y+Math.sin(trad)*treeDist,
+      size:17,type:['pine','round','palm'][node.id%3]});
+  });
+
+  return {nodes,edges,adj,cc,nodeBuildings,nodeTrees,lakes};
+}
+
+// ============================================================
+// runAlgos — memanggil BFS & Dijkstra, tampilkan hasil
+// ============================================================
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function runAlgos(){
+  const algo=document.querySelector('input[name="algo"]:checked')?.value||'both';
+  S.startN=parseInt(document.getElementById('selS').value);
+  S.endN=parseInt(document.getElementById('selE').value);
+  if(S.startN===S.endN){notify('⚠️ Pilih node berbeda');return;}
+  stopTrack();
+  let bP=[],dP=[],bT=0,dT=0;
+  if(algo==='both'||algo==='bfs'){const t=performance.now();bP=bfs(S.startN,S.endN,S.adj);bT=performance.now()-t;}
+  if(algo==='both'||algo==='dijkstra'){const t=performance.now();dP=dijkstra(S.startN,S.endN,S.adj,S.nodes);dT=performance.now()-t;}
+  const nm=id=>S.nodes[id]?.label||id;
+  document.getElementById('rBP').textContent=bP.length?bP.map(nm).join(' → '):'(tidak ditemukan)';
+  document.getElementById('rBD').textContent=bP.length?pathKm(bP,S.adj)+' km':'–';
+  document.getElementById('rBH').textContent=bP.length?bP.length-1:'–';
+  document.getElementById('rBT').textContent=bT.toFixed(3);
+  document.getElementById('rDP').textContent=dP.length?dP.map(nm).join(' → '):'(tidak ditemukan)';
+  document.getElementById('rDD').textContent=dP.length?pathKm(dP,S.adj)+' km':'–';
+  document.getElementById('rDH').textContent=dP.length?dP.length-1:'–';
+  document.getElementById('rDT').textContent=dT.toFixed(3);
+  const sumBox=document.getElementById('rSummary');
+  if(bP.length&&dP.length&&algo==='both'){
+    const bKm=parseFloat(pathKm(bP,S.adj)),dKm=parseFloat(pathKm(dP,S.adj));
+    const bH=bP.length-1,dH=dP.length-1;
+    const samePath=JSON.stringify(bP)===JSON.stringify(dP);
+    const kmWinner=dKm<=bKm?'Dijkstra':'BFS';
+    const hopWinner=bH<=dH?'BFS':'Dijkstra';
+    const kmDiff=Math.abs(bKm-dKm).toFixed(2);
+    const hopDiff=Math.abs(bH-dH);
+    let html=`<b style="color:#f59e0b">BFS</b>&nbsp;&nbsp;${bH} hop · ${bKm} km<br>
+<b style="color:#10b981">Dijkstra</b>&nbsp;&nbsp;${dH} hop · ${dKm} km<br>
+<span style="border-top:1px solid #2d3d5a;display:block;margin:5px 0"></span>`;
+    if(samePath){
+      html+=`<span style="color:#8a94b0">Jalur sama — coba titik lain atau klik Acak Posisi.</span>`;
+    }else{
+      html+=`<b style="color:#4a9eff">${kmWinner}</b> hemat <b>${kmDiff} km</b> &nbsp;·&nbsp; <b style="color:#4a9eff">${hopWinner}</b> hemat <b>${hopDiff} hop</b><br>
+<span style="color:#6a7490;font-size:.65rem">BFS abaikan jarak → min singgah · Dijkstra hitung jarak → min km</span>`;
+    }
+    sumBox.innerHTML=html; sumBox.style.display='block';
+  }else{
+    sumBox.style.display='none';
+  }
+  if(S.animSteps){
+    S.bfsPath=[];S.dijkPath=[];
+    const mx=Math.max(bP.length,dP.length);
+    for(let i=1;i<=mx;i++){
+      S.bfsPath=bP.slice(0,i);S.dijkPath=dP.slice(0,i);
+      draw(S.bfsPath,S.dijkPath,null,null);
+      await sleep(180);
+    }
+    S.bfsPath=bP;S.dijkPath=dP;
+  }else{
+    S.bfsPath=bP;S.dijkPath=dP;
+    draw(S.bfsPath,S.dijkPath,null,null);
+  }
+  notify('✅ Rute ditemukan!');
+  await sleep(400);
+  S.trackT=0;S.trailBFS=[];S.trailDijk=[];S.wheelAngle=0;
+  startTrack(true);
+}
+
+// ============================================================
+// UI — populateSel & notify & clearRes
 // ============================================================
 function populateSel(){
-  const ss=document.getElementById('selS'), se=document.getElementById('selE');
+  const ss=document.getElementById('selS'),se=document.getElementById('selE');
   ss.innerHTML=se.innerHTML='';
   S.nodes.forEach(n=>{
     ss.appendChild(new Option(`${n.icon} ${n.label}`,n.id));
