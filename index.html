@@ -1,95 +1,124 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Final Project – Peta Spasial Perkotaan | Grafika Komputer 2026</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Final Project – Peta Spasial Perkotaan | Grafika Komputer 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- HEADER -->
-  <div id="hdr">
-    <div class="hlogo">
-      <h1>Peta Spasial Perkotaan</h1>
-      <p>INF11114 Grafika Komputer · UMRAH 2026</p>
-    </div>
-    <div class="htools">
-      <button id="btnRand">Acak Map</button>
-      <button id="btnRandPos">Acak Posisi</button>
-      <button id="btnZI">Zoom +</button>
-      <button id="btnZO">Zoom -</button>
-      <button id="btnZR">Fit</button>
-      <button id="btnTrack">Start Track</button>
-      <button id="btnAbout">Info</button>
+<div id="hdr">
+  <div class="hlogo">
+    <svg viewBox="0 0 30 30" fill="none"><rect width="30" height="30" rx="7" fill="#1a73e8"/><path d="M15 6C11.13 6 8 9.13 8 13C8 18.25 15 24 15 24C15 24 22 18.25 22 13C22 9.13 18.87 6 15 6ZM15 15.5C13.62 15.5 12.5 14.38 12.5 13C12.5 11.62 13.62 10.5 15 10.5C16.38 10.5 17.5 11.62 17.5 13C17.5 14.38 16.38 15.5 15 15.5Z" fill="white"/></svg>
+    <div><h1>Peta Spasial Perkotaan</h1><p>INF11114 Grafika Komputer · UMRAH 2026</p></div>
+  </div>
+  <div class="hsep"></div>
+  <div class="htools">
+    <button class="hbtn org" id="btnRand">🔀 Acak Map</button>
+    <button class="hbtn" id="btnRandPos">🎯 Acak Posisi</button>
+    <div class="hsep"></div>
+    <button class="hbtn" id="btnZI">＋ Zoom</button>
+    <button class="hbtn" id="btnZO">－ Zoom</button>
+    <button class="hbtn" id="btnZR">⊙ Fit</button>
+    <div class="hsep"></div>
+    <button class="hbtn grn" id="btnTrack">▶ Start Track</button>
+    <button class="hbtn" id="btnAbout">ℹ Info</button>
+  </div>
+</div>
+
+<div id="main">
+<div id="sb">
+  <div class="ss">
+    <h4>Algoritma</h4>
+    <label class="aopt"><input type="radio" name="algo" value="both" checked><span class="adot"></span>BFS + Dijkstra (bandingkan)</label>
+    <label class="aopt"><input type="radio" name="algo" value="bfs"><span class="adot"></span>BFS – Minimum Hop</label>
+    <label class="aopt"><input type="radio" name="algo" value="dijkstra"><span class="adot"></span>Dijkstra – Bobot Jarak</label>
+    <div class="tgl-row"><div class="tgl on" id="tglAnim"></div><span>Animasi Langkah</span></div>
+    <div class="tgl-row" style="margin-top:5px"><div class="tgl on" id="tglCam"></div><span>Ikuti Kendaraan (kamera)</span></div>
+    <div style="margin-top:9px">
+      <label class="slbl">Kecepatan Kendaraan</label>
+      <input type="range" id="speedSlider" min="1" max="8" value="3" step="1" style="width:100%;accent-color:#4a9eff;cursor:pointer;margin-top:2px">
+      <div style="display:flex;justify-content:space-between;font-size:.63rem;color:#4a5470;margin-top:1px">
+        <span>Lambat</span><span id="speedLbl">Normal</span><span>Cepat</span>
+      </div>
     </div>
   </div>
-
-  <!-- MAIN -->
-  <div id="main">
-
-    <!-- SIDEBAR -->
-    <div id="sb">
-      <div class="ss">
-        <h4>Algoritma</h4>
-        <label><input type="radio" name="algo" value="both" checked> BFS + Dijkstra</label>
-        <label><input type="radio" name="algo" value="bfs"> BFS</label>
-        <label><input type="radio" name="algo" value="dijkstra"> Dijkstra</label>
-      </div>
-      <div class="ss">
-        <h4>Rute</h4>
-        <label>Titik Awal</label>
-        <select id="selS"></select>
-        <label>Titik Tujuan</label>
-        <select id="selE"></select>
-        <button id="btnRun">Jalankan</button>
-        <button id="btnReset">Reset</button>
-      </div>
-      <div class="ss">
-        <h4>Statistik</h4>
-        <span>Nodes: <b id="stN">–</b></span>
-        <span>Edges: <b id="stE">–</b></span>
-        <span>Zoom: <b id="stZ">100%</b></span>
-      </div>
-      <div class="ss">
-        <h4>Hasil Algoritma</h4>
-        <div id="rBP">–</div>
-        <div id="rDP">–</div>
-        <div id="rSummary"></div>
-      </div>
-    </div>
-
-    <!-- VIEWPORT PETA -->
-    <div id="vp">
-      <div id="cvwrap">
-        <canvas id="mc"></canvas>
-      </div>
-      <div id="zhud">Zoom: 100%</div>
-      <div id="scbar">
-        <div class="bar" id="scline"></div>
-        <span id="sclbl">500m</span>
-      </div>
-      <div id="mmwrap">
-        <canvas id="mmc" width="160" height="110"></canvas>
-        <div id="mmv"></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- MODAL INFO -->
-  <div id="mdbg">
-    <div id="mdbox">
-      <h2>Final Project – Peta Spasial Perkotaan</h2>
-      <p>INF11114 Grafika Komputer · UMRAH 2026</p>
-      <button id="btnMdClose">Tutup</button>
+  <div class="ss">
+    <h4>Rute</h4>
+    <label class="slbl">Titik Awal 🚩</label>
+    <select class="ssel" id="selS"></select>
+    <label class="slbl">Titik Tujuan 🏁</label>
+    <select class="ssel" id="selE"></select>
+    <div class="srow">
+      <button class="sbtn" id="btnRun" style="border-color:#3ecf8e;color:#3ecf8e">▶ Jalankan</button>
+      <button class="sbtn" id="btnReset">↺ Reset</button>
     </div>
   </div>
+  <div class="ss">
+    <h4>Statistik Peta</h4>
+    <div class="sgrid">
+      <div class="sc"><div class="sv" id="stN">–</div><div class="sl">Nodes</div></div>
+      <div class="sc"><div class="sv" id="stE">–</div><div class="sl">Edges</div></div>
+      <div class="sc"><div class="sv" id="stZ">100%</div><div class="sl">Zoom</div></div>
+    </div>
+  </div>
+  <div class="ss">
+    <h4>Hasil Algoritma</h4>
+    <div class="rc"><div class="rtag tbfs">BFS</div><div class="rp" id="rBP">–</div><div class="rm">Jarak: <b id="rBD">–</b> · Hop: <b id="rBH">–</b> · <b id="rBT">–</b> ms</div></div>
+    <div class="rc"><div class="rtag tdijk">Dijkstra</div><div class="rp" id="rDP">–</div><div class="rm">Jarak: <b id="rDD">–</b> · Hop: <b id="rDH">–</b> · <b id="rDT">–</b> ms</div></div>
+    <div id="rSummary" style="display:none;margin-top:6px;padding:9px 11px;background:#1a2235;border:1px solid #2d3d5a;border-radius:8px;font-size:.72rem;line-height:1.75;color:#c8d0e0"></div>
+  </div>
+  <div class="ss">
+    <h4>Teknik Grafika Komputer</h4>
+    <div class="gfxb">
+      <span>Bézier Kubik</span> Jalan lengkung vektor<br>
+      <span>Transformasi 2D</span> Zoom + Pan matrix<br>
+      <span>Arc-Length Param.</span> Animasi konstan<br>
+      <span>BFS</span> Min hop (abaikan bobot)<br>
+      <span>Dijkstra</span> Min bobot (highway murah)<br>
+      <span>Landmark 2D</span> Bangunan ikonik di samping node
+    </div>
+  </div>
+  <div class="finf">© Project Computer Graphics Course 2026<br>Universitas Maritim Raja Ali Haji</div>
+</div>
 
-  <!-- NOTIFIKASI -->
-  <div id="nbox"></div>
+<div id="vp">
+  <div id="cvwrap"><canvas id="mc"></canvas></div>
+  <div id="lgd">
+    <div class="lr"><div class="ll" style="width:28px;background:#f9c74f;border:1.5px solid #c8961a"></div>Jalan Utama</div>
+    <div class="lr"><div class="ll" style="width:28px;background:#fff;border:1px solid #aaa"></div>Jalan Lokal</div>
+    <div class="lr"><div class="ll hw" style="width:28px;background:#b8b0a0;border:1px solid #5a5a5a;background:repeating-linear-gradient(90deg,#b8b0a0 0px,#b8b0a0 8px,#f5f0d0 8px,#f5f0d0 14px)"></div>Jalan Bypass</div>
+    <div class="lr"><div class="ll" style="width:28px;background:#e65100"></div>Rute BFS</div>
+    <div class="lr"><div class="ll" style="width:28px;background:#1a73e8"></div>Rute Dijkstra</div>
+    <div class="lr"><span>🚩🏁</span> Start / Goal</div>
+    <div class="lr"><span>🏢</span> Bangunan ikonik (di samping node)</div>
+  </div>
+  <div id="scbar"><div class="bar" id="scline"></div><span id="sclbl">500m</span></div>
+  <div id="zhud">Zoom: 100%</div>
+  <div id="mmwrap"><canvas id="mmc" width="160" height="110"></canvas><div id="mmv"></div></div>
+</div>
+</div>
 
-  <script src="script.js"></script>
+<div id="mdbg">
+  <div id="mdbox">
+    <h2>🗺️ Final Project – Peta Spasial Perkotaan</h2>
+    <p><b>INF11114 Grafika Komputer · UMRAH 2026</b></p>
+    <p><b>Teknik Grafika Komputer yang Diterapkan:</b></p>
+    <ul>
+      <li><b>Bézier Curves Kubik</b> – Jalan sebagai kurva mulus</li>
+      <li><b>Intersection Rendering</b> – Disc besar untuk sambungan sempurna</li>
+      <li><b>Transformasi 2D</b> – Zoom/Pan dengan matrix</li>
+      <li><b>Arc-Length Parameterization</b> – Animasi kendaraan halus</li>
+      <li><b>BFS & Dijkstra</b> – Perbandingan rute terpendek</li>
+      <li><b>Landmark 2D</b> – Bangunan ikonik + danau/kolam di peta</li>
+    </ul>
+    <button class="mbtn" id="btnMdClose">Tutup</button>
+  </div>
+</div>
+<div id="nbox"></div>
+
+<script src="script.js"></script>
 </body>
 </html>

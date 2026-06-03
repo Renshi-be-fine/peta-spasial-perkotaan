@@ -135,80 +135,7 @@ function roadW(e){
 }
 
 // ============================================================
-<<<<<<< HEAD
-// HELPER — mkRnd (dibutuhkan generateMap)
-// ============================================================
-function mkRnd(seed){
-  let r=(seed^0xdeadbeef)>>>0;
-  return ()=>{
-    r=Math.imul(r^(r>>>16),0x45d9f3b);
-    r=Math.imul(r^(r>>>16),0x45d9f3b);
-    r^=r>>>16; return (r>>>0)/0xffffffff;
-  };
-}
-
-// ============================================================
-// BFS
-// ============================================================
-function bfs(start,end,adj){
-  const Q=[[start]],vis=new Set([start]);
-  while(Q.length){
-    const p=Q.shift(),n=p[p.length-1];
-    if(n===end)return p;
-    for(const nb of(adj[n]||[])){
-      if(!vis.has(nb.to)){vis.add(nb.to);Q.push([...p,nb.to]);}
-    }
-  }
-  return [];
-}
-
-// ============================================================
-// DIJKSTRA
-// ============================================================
-function dijkstra(start,end,adj,nodes){
-  const dist={},prev={};
-  nodes.forEach(n=>dist[n.id]=Infinity);
-  dist[start]=0;
-  const pq=[{id:start,d:0}];
-  while(pq.length){
-    pq.sort((a,b)=>a.d-b.d);
-    const {id,d}=pq.shift();
-    if(id===end)break;
-    if(d>dist[id])continue;
-    for(const nb of(adj[id]||[])){
-      const nd=d+nb.weight;
-      if(nd<dist[nb.to]){dist[nb.to]=nd;prev[nb.to]=id;pq.push({id:nb.to,d:nd});}
-    }
-  }
-  if(dist[end]===Infinity)return [];
-  const p=[];let c=end;
-  while(c!==undefined){p.unshift(c);c=prev[c];}
-  return p;
-}
-
-function pathDist(path,adj){
-  let t=0;
-  for(let i=0;i<path.length-1;i++){
-    const nb=adj[path[i]]?.find(n=>n.to===path[i+1]);
-    if(nb)t+=nb.weight;
-  }
-  return t;
-}
-
-function pathKm(path,adj){
-  let t=0;
-  for(let i=0;i<path.length-1;i++){
-    const nb=adj[path[i]]?.find(n=>n.to===path[i+1]);
-    if(nb)t+=(nb.dist||nb.weight);
-  }
-  return (t/400).toFixed(2);
-}
-
-// ============================================================
-// GENERATE MAP — Graph Construction
-=======
 // GENERATE MAP
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
 // ============================================================
 function generateMap(seed){
   const rnd=mkRnd(seed||Math.floor(Math.random()*1e9));
@@ -227,13 +154,6 @@ function generateMap(seed){
   const nodes=[];
   for(let i=0;i<24;i++){
     const c=i%cols,r=Math.floor(i/cols);
-<<<<<<< HEAD
-    const pos=()=>{
-      const v=rnd();
-      if(v<0.18) return 0.02+rnd()*0.10;
-      if(v<0.35) return 0.88+rnd()*0.10;
-      return 0.18+rnd()*0.64;
-=======
     // ~35% node ditaruh sangat dekat tepi sel → edge dengan tetangga jadi pendek (~0.2km)
     // ~65% node di tengah sel → edge ke tetangga jadi panjang (~1.2–2km)
     // Ini menjamin selalu ada situasi: "1 hop jauh" vs "2–3 hop pendek-pendek"
@@ -243,7 +163,6 @@ function generateMap(seed){
       if(v<0.18) return 0.02+rnd()*0.10;  // sangat dekat tepi kiri/atas
       if(v<0.35) return 0.88+rnd()*0.10;  // sangat dekat tepi kanan/bawah
       return 0.18+rnd()*0.64;             // tengah sel, tersebar lebar
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
     };
     nodes.push({
       id:i,
@@ -264,19 +183,12 @@ function generateMap(seed){
     if(a===b||hasEdge(a,b))return;
     const dx=nodes[a].x-nodes[b].x,dy=nodes[a].y-nodes[b].y;
     const d=Math.sqrt(dx*dx+dy*dy);
-<<<<<<< HEAD
-    edges.push({from:a,to:b,weight:Math.round(d),dist:Math.round(d)});
-  }
-
-  // 1) MST Prim – menjamin semua node terhubung
-=======
     // weight = jarak pixel asli (400 unit ≈ 1 km)
     // Dijkstra: minimum total jarak · BFS: minimum hop
     edges.push({from:a,to:b,weight:Math.round(d),dist:Math.round(d)});
   }
 
   // 1) MST Prim – guarantees full connectivity
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
   const inMST=new Set([0]);
   while(inMST.size<nodes.length){
     let minD=Infinity,best=null;
@@ -292,11 +204,7 @@ function generateMap(seed){
     addEdge(best.from,best.to);
   }
 
-<<<<<<< HEAD
-  // 2) Extra density edges
-=======
   // 2) Extra density edges (short random connections)
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
   for(let i=0;i<nodes.length;i++){
     for(let j=i+1;j<nodes.length;j++){
       if(hasEdge(i,j))continue;
@@ -306,11 +214,7 @@ function generateMap(seed){
     }
   }
 
-<<<<<<< HEAD
-  // 3) Loop guarantee: setiap node punya degree >= 2
-=======
   // 3) LOOP GUARANTEE: ensure every node has degree ≥ 2
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
   let changed=true;
   while(changed){
     changed=false;
@@ -329,30 +233,6 @@ function generateMap(seed){
     }
   }
 
-<<<<<<< HEAD
-  // 4) Bypass edges: koneksi jarak jauh
-  const candidates=[];
-  for(let i=0;i<nodes.length;i++){
-    for(let j=i+1;j<nodes.length;j++){
-      if(hasEdge(i,j))continue;
-      const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;
-      const d=Math.sqrt(dx*dx+dy*dy);
-      if(d>600)candidates.push({i,j,d});
-    }
-  }
-  candidates.sort((a,b)=>b.d-a.d);
-  const bypassEdges=[];
-  const usedNodes=new Set();
-  for(const c of candidates){
-    if(bypassEdges.length>=5)break;
-    if(usedNodes.has(c.i)||usedNodes.has(c.j))continue;
-    bypassEdges.push(c);
-    usedNodes.add(c.i); usedNodes.add(c.j);
-    addEdge(c.i,c.j);
-    edges[edges.length-1].bypass=true;
-  }
-
-=======
 
 
   // ------------------------------------------------------------------
@@ -386,7 +266,6 @@ function generateMap(seed){
   }
 
   // ------------------------------------------------------------------
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
   const lakeSeeds=[
     {cx:MAP_W*0.22, cy:MAP_H*0.52, rx:105,ry:72, label:'Danau Sari'},
     {cx:MAP_W*0.73, cy:MAP_H*0.28, rx:82, ry:58, label:'Kolam Taman'},
@@ -396,13 +275,9 @@ function generateMap(seed){
     return nodes.every(n=>Math.hypot(n.x-l.cx,n.y-l.cy)>180);
   });
 
-<<<<<<< HEAD
-  // Cache curves — akan diisi oleh Cinto (fungsi getCP/getCPBypass/arcTable)
-=======
   // ------------------------------------------------------------------
   // CACHE CURVES
   // ------------------------------------------------------------------
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
   const cc={};
   edges.forEach(e=>{
     const a=nodes[e.from],b=nodes[e.to];
@@ -416,13 +291,6 @@ function generateMap(seed){
   const adj={};
   nodes.forEach(n=>adj[n.id]=[]);
   edges.forEach(e=>{
-<<<<<<< HEAD
-    adj[e.from].push({to:e.to,   weight:e.weight,dist:e.dist||e.weight,bypass:!!e.bypass});
-    adj[e.to].push(  {to:e.from, weight:e.weight,dist:e.dist||e.weight,bypass:!!e.bypass});
-  });
-
-  // Buildings & Trees — akan diisi Cinto
-=======
     adj[e.from].push({to:e.to,   weight:e.weight, dist:e.dist||e.weight, bypass:!!e.bypass});
     adj[e.to].push(  {to:e.from, weight:e.weight, dist:e.dist||e.weight, bypass:!!e.bypass});
   });
@@ -430,7 +298,6 @@ function generateMap(seed){
   // ------------------------------------------------------------------
   // BUILDINGS & TREES (offset away from roads)
   // ------------------------------------------------------------------
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
   const nodeBuildings=[],nodeTrees=[];
   nodes.forEach(node=>{
     const edgeAngles=[];
@@ -438,10 +305,7 @@ function generateMap(seed){
       const o=nodes[nb.to];
       edgeAngles.push(Math.atan2(o.y-node.y,o.x-node.x)*180/Math.PI);
     }
-<<<<<<< HEAD
-=======
     // find direction with most gap from any edge
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
     let bestAngle=0,maxMinDiff=-Infinity;
     for(let a=0;a<360;a+=30){
       let minDiff=180;
@@ -456,10 +320,7 @@ function generateMap(seed){
     const dist=105;
     const bx=node.x+Math.cos(rad)*dist;
     const by=node.y+Math.sin(rad)*dist;
-<<<<<<< HEAD
-=======
 
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
     let type='default',w=56,h=48;
     if(node.label.includes('SMA')){type='school';w=72;h=54;}
     else if(node.label.includes('Bandara')){type='airport';w=88;h=60;}
@@ -472,17 +333,11 @@ function generateMap(seed){
     else if(node.label.includes('Kampus')){type='university';w=80;h=58;}
     else if(node.label.includes('Terminal')||node.label.includes('Stasiun')){type='station';w=72;h=52;}
     else if(node.label.includes('Museum')){type='museum';w=70;h=56;}
-<<<<<<< HEAD
-    nodeBuildings.push({nodeId:node.id,x:bx-w/2,y:by-h/2,width:w,height:h,type,label:node.label});
-    const trad=bestAngle*Math.PI/180;
-    const treeDist=140;
-=======
 
     nodeBuildings.push({nodeId:node.id,x:bx-w/2,y:by-h/2,width:w,height:h,type,label:node.label});
 
     const trad=bestAngle*Math.PI/180;  // arah celah terlebar, bukan +85° yang salah
     const treeDist=140; // cukup jauh dari pusat node agar tidak nimpa jalan
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
     nodeTrees.push({nodeId:node.id,
       x:node.x+Math.cos(trad)*treeDist,
       y:node.y+Math.sin(trad)*treeDist,
@@ -493,73 +348,6 @@ function generateMap(seed){
 }
 
 // ============================================================
-<<<<<<< HEAD
-// runAlgos — memanggil BFS & Dijkstra, tampilkan hasil
-// ============================================================
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-
-async function runAlgos(){
-  const algo=document.querySelector('input[name="algo"]:checked')?.value||'both';
-  S.startN=parseInt(document.getElementById('selS').value);
-  S.endN=parseInt(document.getElementById('selE').value);
-  if(S.startN===S.endN){notify('⚠️ Pilih node berbeda');return;}
-  stopTrack();
-  let bP=[],dP=[],bT=0,dT=0;
-  if(algo==='both'||algo==='bfs'){const t=performance.now();bP=bfs(S.startN,S.endN,S.adj);bT=performance.now()-t;}
-  if(algo==='both'||algo==='dijkstra'){const t=performance.now();dP=dijkstra(S.startN,S.endN,S.adj,S.nodes);dT=performance.now()-t;}
-  const nm=id=>S.nodes[id]?.label||id;
-  document.getElementById('rBP').textContent=bP.length?bP.map(nm).join(' → '):'(tidak ditemukan)';
-  document.getElementById('rBD').textContent=bP.length?pathKm(bP,S.adj)+' km':'–';
-  document.getElementById('rBH').textContent=bP.length?bP.length-1:'–';
-  document.getElementById('rBT').textContent=bT.toFixed(3);
-  document.getElementById('rDP').textContent=dP.length?dP.map(nm).join(' → '):'(tidak ditemukan)';
-  document.getElementById('rDD').textContent=dP.length?pathKm(dP,S.adj)+' km':'–';
-  document.getElementById('rDH').textContent=dP.length?dP.length-1:'–';
-  document.getElementById('rDT').textContent=dT.toFixed(3);
-  const sumBox=document.getElementById('rSummary');
-  if(bP.length&&dP.length&&algo==='both'){
-    const bKm=parseFloat(pathKm(bP,S.adj)),dKm=parseFloat(pathKm(dP,S.adj));
-    const bH=bP.length-1,dH=dP.length-1;
-    const samePath=JSON.stringify(bP)===JSON.stringify(dP);
-    const kmWinner=dKm<=bKm?'Dijkstra':'BFS';
-    const hopWinner=bH<=dH?'BFS':'Dijkstra';
-    const kmDiff=Math.abs(bKm-dKm).toFixed(2);
-    const hopDiff=Math.abs(bH-dH);
-    let html=`<b style="color:#f59e0b">BFS</b>&nbsp;&nbsp;${bH} hop · ${bKm} km<br>
-<b style="color:#10b981">Dijkstra</b>&nbsp;&nbsp;${dH} hop · ${dKm} km<br>
-<span style="border-top:1px solid #2d3d5a;display:block;margin:5px 0"></span>`;
-    if(samePath){
-      html+=`<span style="color:#8a94b0">Jalur sama — coba titik lain atau klik Acak Posisi.</span>`;
-    }else{
-      html+=`<b style="color:#4a9eff">${kmWinner}</b> hemat <b>${kmDiff} km</b> &nbsp;·&nbsp; <b style="color:#4a9eff">${hopWinner}</b> hemat <b>${hopDiff} hop</b><br>
-<span style="color:#6a7490;font-size:.65rem">BFS abaikan jarak → min singgah · Dijkstra hitung jarak → min km</span>`;
-    }
-    sumBox.innerHTML=html; sumBox.style.display='block';
-  }else{
-    sumBox.style.display='none';
-  }
-  if(S.animSteps){
-    S.bfsPath=[];S.dijkPath=[];
-    const mx=Math.max(bP.length,dP.length);
-    for(let i=1;i<=mx;i++){
-      S.bfsPath=bP.slice(0,i);S.dijkPath=dP.slice(0,i);
-      draw(S.bfsPath,S.dijkPath,null,null);
-      await sleep(180);
-    }
-    S.bfsPath=bP;S.dijkPath=dP;
-  }else{
-    S.bfsPath=bP;S.dijkPath=dP;
-    draw(S.bfsPath,S.dijkPath,null,null);
-  }
-  notify('✅ Rute ditemukan!');
-  await sleep(400);
-  S.trackT=0;S.trailBFS=[];S.trailDijk=[];S.wheelAngle=0;
-  startTrack(true);
-}
-
-// ============================================================
-// UI — populateSel & notify & clearRes
-=======
 // BFS & DIJKSTRA
 // ============================================================
 function bfs(start,end,adj){
@@ -1478,7 +1266,6 @@ function clampPan(){
 
 // ============================================================
 // UI (sama seperti asli, tidak diubah)
->>>>>>> 9d36e9fa6c4edc1b0a4757425d77f7477df725b9
 // ============================================================
 function populateSel(){
   const ss=document.getElementById('selS'),se=document.getElementById('selE');
